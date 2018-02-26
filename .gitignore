@@ -1,3 +1,4 @@
 .stack-work/
 issues.cabal
 *~
+bin/

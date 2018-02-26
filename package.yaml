@@ -26,7 +26,7 @@ library:
   source-dirs: src
 
 executables:
-  issues-exe:
+  issues:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -35,7 +35,10 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - issues
-
+    - http-conduit
+    - utf8-string
+    - aeson
+    - text
 tests:
   issues-test:
     main:                Spec.hs
