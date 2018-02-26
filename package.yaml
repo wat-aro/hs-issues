@@ -36,7 +36,6 @@ executables:
     dependencies:
     - issues
     - http-conduit
-    - utf8-string
     - aeson
     - text
 tests:

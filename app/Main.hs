@@ -2,20 +2,32 @@
 
 module Main where
 
-import qualified Codec.Binary.UTF8.String as UTF8
 import           Data.Aeson
 import           Data.Maybe
-import           Data.Text
+import           Data.Text           as T
+import qualified Data.Text.IO        as IOT
 import           GHC.Generics
 import           Lib
-import qualified Network.HTTP.Simple      as HTTP
-import           System.Environment       (getArgs)
+import qualified Network.HTTP.Simple as HTTP
+import           System.Environment  (getArgs)
 
 data GithubRes = GithubRes
                  { number    :: Int
-                 , createdAt :: String
+                 , createdAt :: Text
                  , title     :: Text
-                 } deriving Show
+                 }
+
+githubResToText :: GithubRes -> Text
+githubResToText (GithubRes number createdAt title) = "GithubRes { number: " `T.append` (pack . show) number `T.append` ", createdAt: " `T.append` createdAt `T.append` ", title: " `T.append` title `T.append` " }"
+
+githubResListToText :: [GithubRes] -> Text
+githubResListToText [] = ""
+githubResListToText (x:xs) = do
+    "[ " `T.append` f (x:xs)
+  where
+    f [] = " ]"
+    f (x:xs) = do
+         githubResToText x `T.append` f xs
 
 instance FromJSON GithubRes where
     parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
@@ -40,4 +52,4 @@ run user project = do
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> print githubRes
+        Just githubRes -> IOT.putStrLn $ githubResListToText githubRes
