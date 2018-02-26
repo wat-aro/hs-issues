@@ -3,6 +3,7 @@
 module Main where
 
 import           Data.Aeson
+import qualified Data.List           as List
 import           Data.Maybe
 import           Data.Text           as T
 import qualified Data.Text.IO        as IOT
@@ -18,16 +19,11 @@ data GithubRes = GithubRes
                  }
 
 githubResToText :: GithubRes -> Text
-githubResToText (GithubRes number createdAt title) = "GithubRes { number: " `T.append` (pack . show) number `T.append` ", createdAt: " `T.append` createdAt `T.append` ", title: " `T.append` title `T.append` " }"
+githubResToText (GithubRes number createdAt title) = List.foldr1 T.append ["GithubRes { number: ", (pack . show) number, ", createdAt: ", createdAt, ", title: ", title, " }"]
 
 githubResListToText :: [GithubRes] -> Text
 githubResListToText [] = ""
-githubResListToText (x:xs) = do
-    "[ " `T.append` f (x:xs)
-  where
-    f [] = " ]"
-    f (x:xs) = do
-         githubResToText x `T.append` f xs
+githubResListToText list = T.append "[ " $ List.foldr (T.append . githubResToText) " ]" list
 
 instance FromJSON GithubRes where
     parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
