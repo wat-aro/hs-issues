@@ -8,6 +8,7 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Text           as T
 import qualified Data.Text.IO        as IOT
+import           Data.Time.Clock
 import           GHC.Generics
 import           Lib
 import qualified Network.HTTP.Simple as HTTP
@@ -15,16 +16,16 @@ import           System.Environment  (getArgs)
 
 data GithubRes = GithubRes
                  { number    :: Int
-                 , createdAt :: Text
+                 , createdAt :: UTCTime
                  , title     :: Text
                  }
 
 githubResToText :: GithubRes -> Text
-githubResToText (GithubRes number createdAt title) = List.foldr1 (<>) ["GithubRes { number: ", (pack . show) number, ", createdAt: ", createdAt, ", title: ", title, " }"]
+githubResToText (GithubRes number createdAt title) = List.foldr1 (<>) ["GithubRes { number: ", (pack . show) number, ", createdAt: ", (pack . show) createdAt, ", title: ", title, " }"]
 
 githubResListToText :: [GithubRes] -> Text
 githubResListToText [] = ""
-githubResListToText list = (<>) "[ " $ List.foldr ((<>) . githubResToText) " ]" list
+githubResListToText (x:xs) = "[ " <> List.foldr (\x acc -> githubResToText x <> "\n, " <> acc) (githubResToText x) xs <> "\n]"
 
 instance FromJSON GithubRes where
     parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"

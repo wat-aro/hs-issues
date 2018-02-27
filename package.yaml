@@ -38,6 +38,7 @@ executables:
     - http-conduit
     - aeson
     - text
+    - time
 tests:
   issues-test:
     main:                Spec.hs
