@@ -34,7 +34,6 @@ main = do
     args <- getArgs
     case args of
         "help" : _              -> runHelp
-        _ : "help" : _          -> runHelp
         [user, project, _count] -> run user project
         _                       -> runHelp
 
