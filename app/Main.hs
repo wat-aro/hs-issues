@@ -3,6 +3,7 @@
 module Main where
 
 import           Data.Aeson
+import           Data.Function       (on)
 import qualified Data.List           as List
 import           Data.Maybe
 import           Data.Monoid
@@ -20,15 +21,21 @@ data GithubRes = GithubRes
                  , title     :: Text
                  }
 
+instance FromJSON GithubRes where
+    parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
+
+instance Eq GithubRes where
+    x == y = List.all (\f -> f x y) [(==) `on` number, (==) `on` createdAt, (==) `on` title]
+
+instance Ord GithubRes where
+    x `compare` y = createdAt x `compare` createdAt y
+
 githubResToText :: GithubRes -> Text
 githubResToText (GithubRes number createdAt title) = List.foldr1 (<>) ["GithubRes { number: ", (pack . show) number, ", createdAt: ", (pack . show) createdAt, ", title: ", title, " }"]
 
 githubResListToText :: [GithubRes] -> Text
 githubResListToText [] = ""
 githubResListToText (x:xs) = "[ " <> List.foldr (\x acc -> githubResToText x <> "\n, " <> acc) (githubResToText x) xs <> "\n]"
-
-instance FromJSON GithubRes where
-    parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
 
 main :: IO ()
 main = do
@@ -50,4 +57,4 @@ run user project count = do
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> IOT.putStrLn . githubResListToText . List.take count $ githubRes
+        Just githubRes -> IOT.putStrLn . githubResListToText . List.take count $ List.sort githubRes
