@@ -27,12 +27,22 @@ instance FromJSON GithubRes where
 instance Ord GithubRes where
     x `compare` y = List.foldr (\f acc -> (f x y) <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
 
-githubResToText :: GithubRes -> Text
-githubResToText (GithubRes number createdAt title) = List.foldr1 (<>) ["GithubRes { number: ", (pack . show) number, ", createdAt: ", (pack . show) createdAt, ", title: ", title, " }"]
+lengthList :: [GithubRes] -> [Int]
+lengthList = List.foldr (\x [a, b, c] -> [max (T.length . pack . show . number $ x) a, max (T.length . pack . show . createdAt $ x) b, max (T.length . title $ x) c]) (List.map T.length headersList)
 
-githubResListToText :: [GithubRes] -> Text
-githubResListToText [] = ""
-githubResListToText (x:xs) = "[ " <> List.foldl (\acc x -> acc <> "\n, " <> githubResToText x) (githubResToText x) xs <> "\n]"
+formatText :: [GithubRes] -> Text
+formatText githubResList =
+    T.intercalate "\n" (headers : separator : contents)
+  where
+    width = lengthList githubResList
+    headers = T.intercalate " | " $ List.map (\(header, i) -> T.justifyLeft i ' ' header) $ List.zip headersList width
+    separator = T.intercalate "-+-" $ List.map (flip T.replicate "-") width
+    contents :: [Text]
+    contents = List.map (T.intercalate " | ") $ List.map (\x -> List.map (\(text, i) -> T.justifyLeft i ' ' text) $ List.zip (toText x) width) githubResList
+
+toText :: GithubRes -> [Text]
+toText gr = [pack . show . number $ gr, pack . show . createdAt $ gr, title gr]
+
 
 main :: IO ()
 main = do
@@ -46,6 +56,9 @@ main = do
 runHelp :: IO ()
 runHelp = putStrLn "usage: issues <user> <project> [ count | #{defaultCount} ]"
 
+headersList :: [Text]
+headersList = ["number", "created_at", "title"]
+
 run :: String -> String -> Int -> IO ()
 run user project count = do
     req <- HTTP.parseRequest $ "https://api.github.com/repos/" ++ user ++ "/" ++ project ++ "/issues"
@@ -54,4 +67,4 @@ run user project count = do
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> IOT.putStrLn . githubResListToText . List.take count . List.sort $ githubRes
+        Just githubRes -> IOT.putStrLn . formatText . List.take count . List.sort $ githubRes
