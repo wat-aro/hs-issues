@@ -28,7 +28,7 @@ instance Eq GithubRes where
     x == y = List.all (\f -> f x y) [(==) `on` number, (==) `on` createdAt, (==) `on` title]
 
 instance Ord GithubRes where
-    x `compare` y = createdAt x `compare` createdAt y
+    x `compare` y = List.foldr (\f acc -> (f x y) <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
 
 githubResToText :: GithubRes -> Text
 githubResToText (GithubRes number createdAt title) = List.foldr1 (<>) ["GithubRes { number: ", (pack . show) number, ", createdAt: ", (pack . show) createdAt, ", title: ", title, " }"]
