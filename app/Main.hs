@@ -34,19 +34,20 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-        "help" : _              -> runHelp
-        [user, project, _count] -> run user project
-        _                       -> runHelp
+        "help" : _             -> runHelp
+        [user, project]        -> run user project 10
+        [user, project, count] -> run user project (read count :: Int)
+        _                      -> runHelp
 
 runHelp :: IO ()
 runHelp = putStrLn "usage: issues <user> <project> [ count | #{defaultCount} ]"
 
-run :: String -> String -> IO ()
-run user project = do
+run :: String -> String -> Int -> IO ()
+run user project count = do
     req <- HTTP.parseRequest $ "https://api.github.com/repos/" ++ user ++ "/" ++ project ++ "/issues"
     let request = HTTP.setRequestHeader "User-Agent" ["Haskell issues"] req
     res <- HTTP.httpLbs request
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> IOT.putStrLn $ githubResListToText githubRes
+        Just githubRes -> IOT.putStrLn . githubResListToText . List.take count $ githubRes
