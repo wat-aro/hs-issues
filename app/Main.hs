@@ -19,13 +19,10 @@ data GithubRes = GithubRes
                  { number    :: Int
                  , createdAt :: UTCTime
                  , title     :: Text
-                 }
+                 } deriving Eq
 
 instance FromJSON GithubRes where
     parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
-
-instance Eq GithubRes where
-    x == y = List.all (\f -> f x y) [(==) `on` number, (==) `on` createdAt, (==) `on` title]
 
 instance Ord GithubRes where
     x `compare` y = List.foldr (\f acc -> (f x y) <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
