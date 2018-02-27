@@ -32,7 +32,7 @@ githubResToText (GithubRes number createdAt title) = List.foldr1 (<>) ["GithubRe
 
 githubResListToText :: [GithubRes] -> Text
 githubResListToText [] = ""
-githubResListToText (x:xs) = "[ " <> List.foldr (\x acc -> githubResToText x <> "\n, " <> acc) (githubResToText x) xs <> "\n]"
+githubResListToText (x:xs) = "[ " <> List.foldl (\acc x -> acc <> "\n, " <> githubResToText x) (githubResToText x) xs <> "\n]"
 
 main :: IO ()
 main = do
