@@ -57,4 +57,4 @@ run user project count = do
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> IOT.putStrLn . githubResListToText . List.take count $ List.sort githubRes
+        Just githubRes -> IOT.putStrLn . githubResListToText . List.take count . List.sort $ githubRes
