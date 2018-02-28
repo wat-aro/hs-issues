@@ -27,8 +27,16 @@ instance FromJSON GithubRes where
 instance Ord GithubRes where
     x `compare` y = List.foldr (\f acc -> (f x y) <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
 
+infixl 0 |>
+(|>) :: a -> (a -> b) -> b
+(|>) = flip ($)
+
 lengthList :: [GithubRes] -> [Int]
-lengthList = List.foldr (\x [a, b, c] -> [max (T.length . pack . show . number $ x) a, max (T.length . pack . show . createdAt $ x) b, max (T.length . title $ x) c]) (List.map T.length headersList)
+lengthList = List.map T.length headersList
+             |> List.foldr (\x [a, b, c] -> [ max (T.length . pack . show . number $ x) a
+                                            , max (T.length . pack . show . createdAt $ x) b
+                                            , max (T.length . title $ x) c
+                                            ])
 
 formatText :: [GithubRes] -> Text
 formatText githubResList =
@@ -38,7 +46,11 @@ formatText githubResList =
     headers = T.intercalate " | " $ List.map (\(header, i) -> T.justifyLeft i ' ' header) $ List.zip headersList width
     separator = T.intercalate "-+-" $ List.map (flip T.replicate "-") width
     contents :: [Text]
-    contents = List.map (T.intercalate " | ") $ List.map (\x -> List.map (\(text, i) -> T.justifyLeft i ' ' text) $ List.zip (toText x) width) githubResList
+    contents = githubResList
+               |> List.map (\x -> width
+                                  |> List.zip (toText x)
+                                  |> List.map (\(text, i) -> T.justifyLeft i ' ' text))
+               |> List.map (T.intercalate " | ")
 
 toText :: GithubRes -> [Text]
 toText gr = [pack . show . number $ gr, pack . show . createdAt $ gr, title gr]
