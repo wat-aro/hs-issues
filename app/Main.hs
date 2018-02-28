@@ -25,36 +25,38 @@ instance FromJSON GithubRes where
     parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
 
 instance Ord GithubRes where
-    x `compare` y = List.foldr (\f acc -> (f x y) <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
+    x `compare` y = List.foldr (\f acc -> f x y <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
 
 infixl 0 |>
 (|>) :: a -> (a -> b) -> b
 (|>) = flip ($)
 
-lengthList :: [GithubRes] -> [Int]
-lengthList = List.map T.length headersList
-             |> List.foldr (\x [a, b, c] -> [ max (T.length . pack . show . number $ x) a
-                                            , max (T.length . pack . show . createdAt $ x) b
-                                            , max (T.length . title $ x) c
-                                            ])
+toText :: GithubRes -> (Text, Text, Text)
+toText gr = (pack . show . number $ gr, pack . show . createdAt $ gr, title gr)
 
-formatText :: [GithubRes] -> Text
-formatText githubResList =
-    T.intercalate "\n" (headers : separator : contents)
+format :: [(Text, Text, Text)] -> [Text]
+format xs =
+    header : separator : List.map (\x -> appendText " | " ' ' x widths) xs
   where
-    width = lengthList githubResList
-    headers = T.intercalate " | " $ List.map (\(header, i) -> T.justifyLeft i ' ' header) $ List.zip headersList width
-    separator = T.intercalate "-+-" $ List.map (flip T.replicate "-") width
-    contents :: [Text]
-    contents = githubResList
-               |> List.map (\x -> width
-                                  |> List.zip (toText x)
-                                  |> List.map (\(text, i) -> T.justifyLeft i ' ' text))
-               |> List.map (T.intercalate " | ")
+    widths :: (Int, Int, Int)
+    widths = sizeTpl $ headerTpl : xs
 
-toText :: GithubRes -> [Text]
-toText gr = [pack . show . number $ gr, pack . show . createdAt $ gr, title gr]
+    headerTpl :: (Text, Text, Text)
+    headerTpl = ("number", "createdAt", "title")
 
+    header :: Text
+    header = appendText " | " ' ' headerTpl widths
+
+    separator :: Text
+    separator = appendText "-+-" '-' ("-", "-", "-") widths
+
+sizeTpl :: [(Text, Text, Text)] -> (Int, Int, Int)
+sizeTpl = List.foldr (\(t1, t2, t3) (n, m, l) -> (max n $ T.length t1, max m $ T.length t2, max l $ T.length t3))
+                     (0, 0, 0)
+
+appendText :: Text -> Char -> (Text, Text, Text) -> (Int, Int, Int) -> Text
+appendText separator c (t1, t2, t3) (n, m, l) = [T.center n c t1, T.justifyLeft m c t2, T.justifyLeft l c t3]
+                                                |> T.intercalate separator
 
 main :: IO ()
 main = do
@@ -68,9 +70,6 @@ main = do
 runHelp :: IO ()
 runHelp = putStrLn "usage: issues <user> <project> [ count | #{defaultCount} ]"
 
-headersList :: [Text]
-headersList = ["number", "created_at", "title"]
-
 run :: String -> String -> Int -> IO ()
 run user project count = do
     req <- HTTP.parseRequest $ "https://api.github.com/repos/" ++ user ++ "/" ++ project ++ "/issues"
@@ -79,4 +78,4 @@ run user project count = do
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> IOT.putStrLn . formatText . List.take count . List.reverse . List.sort $ githubRes
+        Just githubRes -> mapM_ IOT.putStrLn $ format . List.map toText . List.take count . List.sortBy (flip compare) $ githubRes
