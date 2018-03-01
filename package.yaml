@@ -21,7 +21,9 @@ description:         Please see the README on Github at <https://github.com/wat-
 
 dependencies:
 - base >= 4.7 && < 5
-
+- aeson
+- text
+- time
 library:
   source-dirs: src
 
@@ -38,7 +40,6 @@ executables:
     - http-conduit
     - aeson
     - text
-    - time
 tests:
   issues-test:
     main:                Spec.hs

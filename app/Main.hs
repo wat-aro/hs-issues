@@ -3,32 +3,12 @@
 module Main where
 
 import           Data.Aeson
-import           Data.Function       (on)
 import qualified Data.List           as List
-import           Data.Maybe
-import           Data.Monoid
 import           Data.Text           as T
 import qualified Data.Text.IO        as IOT
-import           Data.Time.Clock
-import           GHC.Generics
-import           Lib
+import           Issues.GitHubRes
 import qualified Network.HTTP.Simple as HTTP
 import           System.Environment  (getArgs)
-
-data GithubRes = GithubRes
-                 { number    :: Int
-                 , createdAt :: UTCTime
-                 , title     :: Text
-                 } deriving Eq
-
-instance FromJSON GithubRes where
-    parseJSON (Object v) = GithubRes <$> v .: "number" <*> v .: "created_at" <*>  v .: "title"
-
-instance Ord GithubRes where
-    x `compare` y = List.foldr (\f acc -> f x y <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
-
-toText :: GithubRes -> (Text, Text, Text)
-toText gr = (pack . show . number $ gr, pack . show . createdAt $ gr, title gr)
 
 format :: [(Text, Text, Text)] -> [Text]
 format xs =
@@ -73,4 +53,4 @@ run user project count = do
     let json = decode (HTTP.getResponseBody res) :: Maybe [GithubRes]
     case json of
         Nothing        -> putStrLn "parsing failed"
-        Just githubRes -> mapM_ IOT.putStrLn $ format . List.map toText . List.take count . List.sortBy (flip compare) $ githubRes
+        Just githubRes -> mapM_ IOT.putStrLn $ format . List.map toTextList . List.take count . List.sortBy (flip compare) $ githubRes
