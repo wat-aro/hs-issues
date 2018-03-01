@@ -27,10 +27,6 @@ instance FromJSON GithubRes where
 instance Ord GithubRes where
     x `compare` y = List.foldr (\f acc -> f x y <> acc) EQ [compare `on` createdAt, compare `on` number, compare `on` title]
 
-infixl 0 |>
-(|>) :: a -> (a -> b) -> b
-(|>) = flip ($)
-
 toText :: GithubRes -> (Text, Text, Text)
 toText gr = (pack . show . number $ gr, pack . show . createdAt $ gr, title gr)
 
@@ -55,8 +51,7 @@ sizeTpl = List.foldr (\(t1, t2, t3) (n, m, l) -> (max n $ T.length t1, max m $ T
                      (0, 0, 0)
 
 appendText :: Text -> Char -> (Text, Text, Text) -> (Int, Int, Int) -> Text
-appendText separator c (t1, t2, t3) (n, m, l) = [T.center n c t1, T.justifyLeft m c t2, T.justifyLeft l c t3]
-                                                |> T.intercalate separator
+appendText separator c (t1, t2, t3) (n, m, l) = T.intercalate separator [T.center n c t1, T.justifyLeft m c t2, T.justifyLeft l c t3]
 
 main :: IO ()
 main = do
